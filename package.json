@@ -6,8 +6,6 @@
     "express": "^4.17.3",
     "koa": "^2.13.4",
     "node-id3": "^0.2.3",
-    "rtsp-server": "^1.2.2",
-    "rtsp-stream": "^1.0.0",
-    "rtsp-streaming-server": "^2.0.6"
+    "winston": "^3.3.3"
   }
 }

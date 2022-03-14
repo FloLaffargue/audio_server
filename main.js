@@ -5,6 +5,7 @@ import {spawn} from "child_process";
 import fs from "fs";
 import nodeId3 from 'node-id3'
 import config from './config.js'
+import {logger} from './logger.js'
 
 const app = express()
 let p
@@ -16,13 +17,14 @@ let MP4_TRANSCODING_SONG_PATH = config.MP4_TRANSCODING_SONG_PATH
 app.use(cors())
 app.use(bodyParser.json())
 
-app.listen(3100, () => { console.log('Listening') })
+app.listen(3100, () => { logger.info('Listening') })
 
 app.get('/api/radio/:people/start', async (req, res, next) => {
     const people = req.params.people
 
     if (!music) {
-        console.log('start radio for people ' + people)
+        // console.log('start radio for people ' + people)
+        logger.info('start radio for people ' + people)
         play()
     }
     res.status(200).json({
@@ -32,10 +34,11 @@ app.get('/api/radio/:people/start', async (req, res, next) => {
 })
 
 app.get('/api/radio/:people/stop', async (req, res, next) => {
-    console.log('stop radio')
+    const people = req.params.people
+    logger.info('stop radio for people ' + people)
     stopRadio = true
     p.kill()
-    console.log('Process stopped')
+    logger.info('process stopped')
     res.status(200).json({
         message: 'process stopped'
     })
@@ -45,7 +48,7 @@ app.get('/api/radio/playing', async (req, res, next) => {
 
     if (music) {
         nodeId3.read(MUSIC_PATH_DIR + '/' + music, (err, tags) => {
-            console.log('Currently playing ' + tags.title, tags.artist)
+            logger.info('Currently playing ' + tags.title, tags.artist)
             let data
             if (tags.title === undefined || tags.artist === undefined) {
                 data = music
@@ -76,13 +79,14 @@ function chooseRandomMusic () {
         const random = Math.floor(Math.random() * files.length)
         return files[random]
     } catch (e) {
-        console.error(e)
+        logger.error(e)
     }
 }
 
 function play () {
     music = chooseRandomMusic()
-    console.log(`Playing [${music}]`)
+    logger.info(`Playing [${music}]`)
+    // console.log(`Playing [${music}]`)
 
     const command = 'ffmpeg'
     const commandArgs = ['-re', '-y', '-i', MUSIC_PATH_DIR + '/' + music, MP4_TRANSCODING_SONG_PATH, '-f', 'rtsp', 'rtsp://127.0.0.1:8554/stream']
@@ -95,22 +99,40 @@ function play () {
     })
 
     p.on('error', function (msg) {
-        console.error(msg)
+        logger.error(msg)
         // logger.error({subProcess, event: 'error', msg})
     })
 
     p.on('close', function (code) {
-        console.log('Process closed with code ' + code)
-        if (code !== 0) {
-            console.log('Error on song ' + music)
+        logger.info('Process closed with code ' + code)
+
+        if (code !== 0 && !stopRadio) {
+            addErrorSong(music)
+            logger.error(`Error on song ${music}`)
         }
+
         if (stopRadio) {
             music = null
             stopRadio = false
         } else {
             play()
         }
-        // logger.info({subProcess, event: 'close', msg: `${filePath} Process exited with code ${code}`})
     })
+}
 
+function addErrorSong (music) {
+    let musics
+
+    if (!fs.existsSync('./log/error-songs.json')) {
+        musics = []
+    } else {
+        musics = fs.readFileSync('./log/error-songs.json')
+        musics = JSON.parse(musics)
+    }
+
+    if (!musics.find(item => item === music)) {
+        musics.push(music)
+    }
+
+    fs.writeFileSync('./log/error-songs.json', JSON.stringify(musics))
 }
