@@ -10,7 +10,8 @@ const app = express()
 let p
 let music = null
 let stopRadio = false
-let PATH_DIR = config.PATH_DIR
+let MUSIC_PATH_DIR = config.MUSIC_PATH_DIR
+let MP4_TRANSCODING_SONG_PATH = config.MP4_TRANSCODING_SONG_PATH
 
 app.use(cors())
 app.use(bodyParser.json())
@@ -43,7 +44,7 @@ app.get('/api/radio/:people/stop', async (req, res, next) => {
 app.get('/api/radio/playing', async (req, res, next) => {
 
     if (music) {
-        nodeId3.read(PATH_DIR + '/' + music, (err, tags) => {
+        nodeId3.read(MUSIC_PATH_DIR + '/' + music, (err, tags) => {
             console.log('Currently playing ' + tags.title, tags.artist)
             let data
             if (tags.title === undefined || tags.artist === undefined) {
@@ -62,16 +63,16 @@ app.get('/api/radio/playing', async (req, res, next) => {
     }
 })
 
-// const files = fs.readdirSync(PATH_DIR)
+// const files = fs.readdirSync(MUSIC_PATH_DIR)
 // files.forEach((music) => {
-//     nodeId3.read(PATH_DIR + '/' + music, (err, tags) => {
+//     nodeId3.read(MUSIC_PATH_DIR + '/' + music, (err, tags) => {
 //         console.log(`${tags.artist} : ${tags.title}`)
 //     })
 // })
 
 function chooseRandomMusic () {
     try {
-        const files = fs.readdirSync(PATH_DIR)
+        const files = fs.readdirSync(MUSIC_PATH_DIR)
         const random = Math.floor(Math.random() * files.length)
         return files[random]
     } catch (e) {
@@ -84,7 +85,7 @@ function play () {
     console.log(`Playing [${music}]`)
 
     const command = 'ffmpeg'
-    const commandArgs = ['-re', '-y', '-i', PATH_DIR + '/' + music, '/home/flo/test.mp4', '-f', 'rtsp', 'rtsp://127.0.0.1:8554/stream']
+    const commandArgs = ['-re', '-y', '-i', MUSIC_PATH_DIR + '/' + music, MP4_TRANSCODING_SONG_PATH, '-f', 'rtsp', 'rtsp://127.0.0.1:8554/stream']
 
     const out = fs.openSync(`./ffmpeg.log.check`, 'a');
     const err = fs.openSync(`./ffmpeg.error.log`, 'a');
