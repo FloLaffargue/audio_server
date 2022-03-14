@@ -4,12 +4,13 @@ import bodyParser from 'body-parser'
 import {spawn} from "child_process";
 import fs from "fs";
 import nodeId3 from 'node-id3'
-import PATH_DIR from './config'
+import config from './config.js'
 
 const app = express()
 let p
 let music = null
 let stopRadio = false
+let PATH_DIR = config.PATH_DIR
 
 app.use(cors())
 app.use(bodyParser.json())
